@@ -4,19 +4,21 @@ import asyncio
 import json
 import os
 from datetime import datetime
+import signal_parser  # Import our signal parser module
 
-# Your API credentials from https://my.telegram.org/
-api_id = 26563174  # Replace with your API ID (number)
-api_hash = '8f768043aaa5edb9bbb95bd0bed7e3c8'  # Replace with your API hash (string)
+# Your API credentials
+api_id = 26563174  # Your API ID
+api_hash = '8f768043aaa5edb9bbb95bd0bed7e3c8'  # Your API hash
 
 # Session name (can be any string)
 session_name = 'monitor_session'
 
-# Output file
-output_file = 'telegram_trades.json'
+# Output files
+raw_messages_file = 'telegram_trades_raw.json'  # All messages
+signals_file = 'telegram_signals.json'  # Only trading signals
 
-# Channel to monitor (numeric ID for private channels)
-channel_id = -1002217244224  # The channel ID you found
+# Channel to monitor
+channel_id = -1002217244224  # The Mr.SniperFx channel ID
 
 async def main():
     # Initialize with your API credentials
@@ -40,21 +42,27 @@ async def main():
             print("Make sure you have joined this channel before running this script.")
             return
         
-        # Create output file if it doesn't exist
-        if not os.path.exists(output_file):
-            with open(output_file, 'w') as f:
-                json.dump([], f)
+        # Create output files if they don't exist
+        for file_path in [raw_messages_file, signals_file]:
+            if not os.path.exists(file_path):
+                with open(file_path, 'w') as f:
+                    json.dump([], f)
+        
+        # Load existing signals to avoid duplicates
+        with open(signals_file, 'r') as f:
+            existing_signals = json.load(f)
+        existing_ids = set(item['id'] for item in existing_signals)
         
         # Set up event handler for new messages
         @client.on(events.NewMessage(chats=channel_id))
         async def handler(event):
             message = event.message
             
-            # Read existing data
-            with open(output_file, 'r') as f:
-                data = json.load(f)
+            # Skip if we've already processed this message
+            if message.id in existing_ids:
+                return
             
-            # Format message data
+            # Base message data
             message_data = {
                 'id': message.id,
                 'date': str(message.date),
@@ -62,14 +70,36 @@ async def main():
                 'timestamp': str(datetime.now())
             }
             
-            # Append new message
-            data.append(message_data)
+            # Save all messages to raw file
+            with open(raw_messages_file, 'r') as f:
+                raw_data = json.load(f)
+            raw_data.append(message_data)
+            with open(raw_messages_file, 'w') as f:
+                json.dump(raw_data, f, indent=2)
             
-            # Save updated data
-            with open(output_file, 'w') as f:
-                json.dump(data, f, indent=2)
-            
-            print(f"New message saved: {message.text[:50]}...")
+            # Check if this is a trading signal
+            if signal_parser.is_trading_signal(message.text):
+                # Parse the signal and add parsed data
+                parsed_signal = signal_parser.parse_signal(message.text)
+                message_data['parsed'] = parsed_signal
+                
+                # Save to signals file if confidence is high enough
+                if parsed_signal['confidence'] >= 0.4:  # Require at least symbol, direction, and one price
+                    with open(signals_file, 'r') as f:
+                        signals_data = json.load(f)
+                    signals_data.append(message_data)
+                    with open(signals_file, 'w') as f:
+                        json.dump(signals_data, f, indent=2)
+                    
+                    # Update our tracking set
+                    existing_ids.add(message.id)
+                    
+                    print(f"Trading signal saved: {message.text[:50]}...")
+                    print(f"Parsed: {json.dumps(parsed_signal, indent=2)}")
+                else:
+                    print(f"Low confidence signal detected (not saved): {message.text[:50]}...")
+            else:
+                print(f"Message received (not a signal): {message.text[:50]}...")
         
         # Run until disconnected
         print("Monitoring for new messages... (Press Ctrl+C to stop)")
