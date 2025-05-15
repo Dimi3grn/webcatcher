@@ -14,7 +14,7 @@ api_hash = '8f768043aaa5edb9bbb95bd0bed7e3c8'  # Your API hash
 session_name = 'monitor_session'
 
 # Output files
-mt5_files_path = "C:/Users/itish/AppData/Roaming/MetaQuotes/Terminal/89FE26BBBAB28C077BBF5FA8C1B4DF1C/MQL5/Files/"
+mt5_files_path = "C:/Users/itish/AppData/Roaming/MetaQuotes/Terminal/4B1CE69F577705455263BD980C39A82C/MQL5/Files/"
 raw_messages_file = mt5_files_path + 'telegram_trades_raw.json'  # All messages
 signals_file = mt5_files_path + 'telegram_signals.json'  # Only trading signals
 
@@ -46,7 +46,7 @@ async def main():
         # Create output files if they don't exist
         for file_path in [raw_messages_file, signals_file]:
             if not os.path.exists(file_path):
-                with open(file_path, 'w') as f:
+                with open(file_path, 'w', encoding='utf-8') as f:
                     json.dump([], f)
         
         # Load existing signals to avoid duplicates
@@ -75,7 +75,7 @@ async def main():
             with open(raw_messages_file, 'r') as f:
                 raw_data = json.load(f)
             raw_data.append(message_data)
-            with open(raw_messages_file, 'w') as f:
+            with open(raw_messages_file, 'w', encoding='utf-8') as f:
                 json.dump(raw_data, f, indent=2)
             
             # Check if this is a trading signal
@@ -89,7 +89,7 @@ async def main():
                     with open(signals_file, 'r') as f:
                         signals_data = json.load(f)
                     signals_data.append(message_data)
-                    with open(signals_file, 'w') as f:
+                    with open(signals_file, 'w', encoding='utf-8') as f:
                         json.dump(signals_data, f, indent=2)
                     
                     # Update our tracking set
