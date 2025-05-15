@@ -14,12 +14,13 @@ api_hash = '8f768043aaa5edb9bbb95bd0bed7e3c8'  # Your API hash
 session_name = 'monitor_session'
 
 # Output files
-mt5_files_path = "C:/Users/itish/AppData/Roaming/MetaQuotes/Terminal/4B1CE69F577705455263BD980C39A82C/MQL5/Files/"
+mt5_files_path = "C:/Users/itish/AppData/Roaming/MetaQuotes/Terminal/73B7A2420D6397DFF9014A20F1201F97/MQL5/Files/"
 raw_messages_file = mt5_files_path + 'telegram_trades_raw.json'  # All messages
 signals_file = mt5_files_path + 'telegram_signals.json'  # Only trading signals
 
 # Channel to monitor
 channel_id = -1002601350644  # The Mr.SniperFx channel ID
+
 
 async def main():
     # Initialize with your API credentials
